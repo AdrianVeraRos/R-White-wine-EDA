@@ -1,0 +1,519 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+White Wine Quality EDA by Adrián Vera Ros
+========================================================
+## Introduction
+In this EDA we aim to analyze the white variants of the Portuguese "Vinho Verde"
+wine with data from the book "Modeling wine preferences by data mining from 
+physicochemical properties." by P. Cortez, A. Cerdeira, F. Almeida, T. Matos 
+and J. Reis.
+
+Doing a preliminary research about the "Vinho Verde" denomination, we discover
+that it's an Origin Denomination (OD) and not a grape variety. "Vinho verde" 
+translates as "Young wine", or wines that are relased 3-6 months after harvest. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide', packages}
+install.packages("ggplot2", dependencies = T, 
+                 repos = "http://cran.us.r-project.org")
+install.packages("knitr", dependencies = T, 
+                 repos = "http://cran.us.r-project.org")
+install.packages("dplyr", dependencies = T, 
+                 repos = "http://cran.us.r-project.org")
+install.packages("PerformanceAnalytics", dependencies = T, 
+                 repos = "http://cran.us.r-project.org")
+install.packages("memisc", dependencies = T, 
+                 repos = "http://cran.us.r-project.org")
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, results='hide', libraries}
+library(ggplot2)
+library(PerformanceAnalytics)
+library(scales)
+library(gridExtra)
+library(memisc)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
+whitewine <- read.csv('wineQualityWhites.csv')
+```
+
+
+## Univariate Plots Section
+The dataset is comprised by 4898 observations from 13 different variables, where
+we have the wines ordered by a numeric key, different objective physicochemical 
+characteristics of each wine and the median of at least 3 subjective sensory
+evaluations made by wine experts. 
+
+More information about the nature of the variables can be found here: https://s3.amazonaws.com/udacity-hosted-downloads/ud651/wineQualityInfo.txt
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Dataset_analyis}
+str(whitewine)
+
+
+summary(whitewine)
+p1 <- qplot(x = fixed.acidity, data = whitewine)
+p2 <- qplot(x = volatile.acidity, data = whitewine)
+p3 <- qplot(x = citric.acid, data = whitewine)
+p4 <- qplot(x = alcohol, data = whitewine)
+p5 <- qplot(x = density, data = whitewine)
+p6 <- qplot(x = residual.sugar, data = whitewine)
+p7 <- qplot(x = chlorides, data = whitewine)
+p8 <- qplot(x = free.sulfur.dioxide, data = whitewine)
+p9 <- qplot(x = total.sulfur.dioxide, data = whitewine)
+p10 <- qplot(x = sulphates, data = whitewine)
+p11 <- qplot(x = pH, data = whitewine)
+p12 <- qplot(x = quality, data = whitewine)
+
+
+
+grid.arrange(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12,  ncol = 3)
+
+```
+
+At first glance we can detect outliers in our dataset, both in the summary 
+(with the max value far the average and the 3rd quartile) and in the graphs. 
+
+Attending to the distributions, most variables have a normal distribution not 
+centered in the graph due to these outliers. However, in the case of residual 
+sugar and alcohol, this situation doesn't happen and we find a left skewed 
+distribution. 
+
+### Outliers elimination and plot transformation
+
+```{r echo=FALSE, data_cleaning}
+wwt <- subset(whitewine, total.sulfur.dioxide <= 250 & sulphates <= 0.8 
+              & free.sulfur.dioxide <= 80 & residual.sugar <= 20 & density <= 1 
+              & citric.acid <= 0.7 & volatile.acidity <= 0.6 
+              & chlorides <= 0.075 & fixed.acidity <= 10)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, sugar_trans}
+ggplot(aes(x=residual.sugar), data = wwt)+
+  geom_histogram() +
+  scale_x_continuous(breaks = seq(0,65,5)) +
+  scale_y_continuous(breaks = seq(0,500,100), trans = "log10")
+
+ggplot(aes(x=alcohol), data = wwt)+
+  geom_histogram(binwidth = 0.25) +
+  scale_x_continuous(breaks = seq(0,20,0.5)) +
+  scale_y_continuous(breaks = seq(0,500,100), trans = "log10")
+```
+
+After transforming the variables we notice how sugar still mantains an skewed
+distribution and how alcohol has spikes in the distribution, probably due to 
+some figures having been rounded.
+
+
+### Quality
+```{r echo=FALSE, Quality}
+wwt.qualitymean <- mean(wwt$quality)
+wwt$quality.cat <- cut(as.numeric(wwt$quality)
+                         ,c(2, 4, 6, 10)
+                         ,labels = c("Low", "Medium", "High"))
+
+ggplot(aes(x=quality), data = wwt)+
+  geom_vline(xintercept = wwt.qualitymean, color = "red") +
+  scale_x_continuous(breaks = 0:10)+
+  geom_bar()
+
+ggplot(aes(x=quality.cat), data = wwt)+
+  geom_bar()
+
+
+
+summary(wwt$quality)
+table(wwt$quality)
+    
+```
+
+The wine score are integers, so there are no scores like 6,5. 
+It ranges from 3 to 9, with 6 being the median with 2012 observations and a 
+average score of 5,9. 
+Of the 4407 observations we have after eliminating the outliers, 3.09% have a 
+score between 3 and 4 (Low), 74.11% have a score between 5 and 6 (Medium) and 
+22,8% have a score of 7 or more (High). However, only 3,77% have a score of 8 
+or more. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, trimmed_dataset_analysis}
+str(wwt)
+summary(wwt)
+p1t <- qplot(x = fixed.acidity, data = wwt)
+p2t <- qplot(x = volatile.acidity, data = wwt)
+p3t <- qplot(x = citric.acid, data = wwt)
+p5t <- qplot(x = density, data = wwt)
+p6t <- qplot(x = chlorides, data = wwt)
+p7t <- qplot(x = free.sulfur.dioxide, data = wwt)
+p8t <- qplot(x = total.sulfur.dioxide, data = wwt)
+p9t <- qplot(x = sulphates, data = wwt)
+p10t <- qplot(x = pH, data = wwt)
+
+
+
+grid.arrange(p1t, p2t, p3t, p5t, p6t, p7t, p8t, p9t, p10t, ncol = 2)
+
+```
+
+
+
+## Univariate Analysis
+Most of the wines are between 9 and 11% alcohol and most of our dataset is 
+composed by average wines while only a few score of 8 and more. 
+
+According to information coming with the dataset, most wines have a pH level 
+between 3 and 4, which concurs with our wine's pH normal distribution. 
+
+According to EU regulation 753/2002, wine's like the ones we have in our
+dataset can be considered medium or medium dry depending on if the sweetness
+gets balanced with acidity.  
+
+Finally, the dataset states that the lower the percentage of alcohol and sugar, 
+the closest the density of the wine is to water. During the process of 
+fermentation, the sugar is converted to alcohol, resulting on lower levels of 
+density. The opposite to a wine with high density (or watery) would be a wine 
+with gravity (with higher sugar/alcohol content). 
+
+
+While the full alcohol range in our dataset is between 8 and 14 degrees, most of
+the wines fall between 9 and 11 degrees of alcohol. Since "Vinho Verde" is an
+OD and not only a type of grape, we are willing to accept the asumption that
+different grapes and fermentations processes can result in different alcohol 
+and residual sugar contents.
+
+Sulphates additives help preventing wine oxidation and preserving the wine's 
+freshness through higher sulfur dioxide (SO2) gas levels. However, too much SO2
+will have implications on the wine taste and potentially, on the consumer's 
+health. 
+
+Small quantities of citric acid adds freshness to the flavor. Too much citric
+acid can create an unpleasant vinegar-like taste.
+
+Salt is commonly used in the culinary world as a flavor enhacer, which might
+affect the wine final flavor and rating. 
+
+All of the above variables are different measures that can affect wine flavor, 
+so they will be the main characteristics for the analysis in the following
+stages. 
+
+So what's next? 
+First we are going to observe the correlation between variables to make sure
+that we are selecting the most relevant for the wine rating analysis. 
+
+Then, we will transform quality to a factor variable to be able to perform a 
+better bivariate analysis and observe the relationship between characteristics
+and score and between the different characteristics. 
+
+
+
+
+
+
+## Bivariate Plots Section
+
+```{r echo=FALSE, correlation1}
+
+cor(x=wwt[,2:12], y=wwt$quality)
+```
+
+Here we can see the main correlation scores to quality. We now select the most
+important ones and create a correlation chart with them.
+
+```{r echo=FALSE, main_Correlation}
+main <- c("quality","total.sulfur.dioxide", "residual.sugar", 
+          "volatile.acidity", "alcohol", "chlorides", "density")
+whitefinal <- wwt[main]
+
+chart.Correlation(whitefinal, histogram = TRUE, pch = 1)
+```
+
+In the correlation chart we can observe the strong relationship between density
+and alcohol/sugar, as stated in the dataset documentation. Now is time to first
+analyze alcohol to wine quality score (as the main factor) and then to other
+relevant characteristics. 
+
+```{r echo=FALSE, Bivariate_plots_quality}
+whitefinal$quality <- factor(whitefinal$quality, 
+                             levels=c(0,1,2,3,4,5,6,7,8,9,10))
+
+ggplot(data=whitefinal, aes(x=quality, y=alcohol)) +
+    geom_jitter(alpha=0.2) +
+    geom_boxplot(alpha = .5,color = 'blue') +
+    stat_summary(fun.y = "mean", 
+               geom = "point", 
+               color = "red", 
+               shape = 8, 
+               size = 4)
+```
+
+
+
+
+
+```{r echo=FALSE, Bivariate_plots_quality2}
+b1 <- ggplot(data=whitefinal, aes(x=as.numeric(quality), y=alcohol)) +
+    geom_jitter(alpha=0.2) +
+    geom_smooth(method='lm', aes(group = 1))+
+    xlab("Wine Quality") +
+    ylab("SO2")
+
+b2 <- ggplot(data=whitefinal, aes(x=as.numeric(quality), 
+                                  y=total.sulfur.dioxide)) +
+    geom_jitter(alpha=0.2) +
+    geom_smooth(method='lm', aes(group = 1))+
+    xlab("Wine Quality") +
+    ylab("SO2")
+
+b3 <- ggplot(data=whitefinal, aes(x=as.numeric(quality), y=residual.sugar)) +
+    geom_jitter(alpha=0.2) +
+    geom_smooth(method='lm', aes(group = 1))+
+    xlab("Wine Quality") +
+    ylab("Sugar")
+
+b4 <- ggplot(data=whitefinal, aes(x=as.numeric(quality), y=volatile.acidity)) +
+    geom_jitter(alpha=0.2) +
+    geom_smooth(method='lm', aes(group = 1))+
+    xlab("Wine Quality") +
+    ylab("Acidity")
+
+b5 <- ggplot(data=whitefinal, aes(x=as.numeric(quality), y=chlorides)) +
+    geom_jitter(alpha=0.2) +
+    geom_smooth(method='lm', aes(group = 1))+
+    xlab("Wine Quality") +
+    ylab("Salt")
+
+b6 <- ggplot(data=whitefinal, aes(x=as.numeric(quality), y=density)) +
+    geom_jitter(alpha=0.2) +
+    geom_smooth(method='lm', aes(group = 1))+
+    xlab("Wine Quality") +
+    ylab("Density")
+
+grid.arrange(b1, b2, b3, b4, b5, b6, ncol = 2)
+
+```
+
+
+
+## Bivariate Analysis
+Surprisingly, alcohol seems to be the main driver on the quality score, with a 
+positive correlation of 0.44. Salt, SO2 and sugar, on the other hand, have soft 
+negative correlations with the score. At the sime time, these three variables 
+have a moderate negative correlations with the alcohol % content and
+positive with density.
+
+We can corroborate that density is opposite to alcohol and sugar in our chart,
+but we can also see that wines with high density (or low gravity) get worse 
+scores. 
+
+Finally, the acidity measure seems to be mild, with no middle or strong
+relationship whatsoever.
+
+
+In the next stage (multivariate analysis) we are going to investigate the 
+relationship between the variables on a more complex level and try to build a 
+predictive model to rate white wines. 
+
+
+
+
+
+
+## Multivariate Plots Section
+
+First we create a new variable, quality.cat, to classify the wines into three
+categories depending on the score. 
+
+Low quality: Scores between 3 and 4
+Medium quality: Scores between 5 and 6
+High quality: scores between 7 and 9
+
+```{r echo=FALSE, cat}
+
+whitefinal$quality.cat <- cut(as.numeric(whitefinal$quality)
+                         ,c(2, 5, 7, 10)
+                         ,labels = c("Low", "Medium", "High"))
+
+summary(whitefinal$quality.cat)
+
+```
+
+Then we analyze the different relationships between quality, alcohol and other
+variables
+
+```{r echo=FALSE, quaalcvar}
+ggplot(data = whitefinal,
+       aes(y = residual.sugar, x = alcohol,
+           color = quality.cat)) +
+  geom_jitter(alpha=.1, size=3) +
+  geom_smooth(method = "lm", se = FALSE,size=1)
+
+ggplot(data = whitefinal,
+       aes(y = total.sulfur.dioxide, x = alcohol,
+           color = quality.cat)) +
+  geom_jitter(alpha=.1, size=3) +
+  geom_smooth(method = "lm", se = FALSE,size=1)
+
+ggplot(data = whitefinal,
+       aes(y = volatile.acidity, x = alcohol,
+           color = quality.cat)) +
+  geom_jitter(alpha=.1, size=3) +
+  geom_smooth(method = "lm", se = FALSE,size=1)
+
+```
+
+In the graph volatile acidity/ alcohol / quality graph above it can be seen how 
+only for High quality wines there is a positive relationship between alcohol %
+content and acidity. 
+
+Now we will build our model:
+
+```{r echo=FALSE, LM}
+m1<-lm(as.numeric(quality) ~ alcohol, data = whitefinal)
+m2 <- update(m1, ~ . + volatile.acidity)
+m3 <- update(m2, ~ . + total.sulfur.dioxide)
+m4 <- update(m3, ~ . + residual.sugar)
+m5 <- update(m4, ~ . + chlorides)
+mtable(m1,m2,m3,m4,m5)
+
+```
+
+
+
+
+## Multivariate Analysis
+
+From our plots we get that there seems to be a trade-off between alcohol and 
+sugar, sulfates and acidity; where either the wines are high in alcohol content
+or in sugar/sulfates/acidity. 
+
+It can be seen as well as wines with higher quality usually have a higher amount
+of both parameters (alcohol + sugar, alchol + sulfates or alcohol + volatile 
+acidity), as there seems to be a higher presence of quality wines on the upper
+right quadrants. 
+
+The lack of data on the right upper quadrant in the relationship between 
+sugar and alcohol makes sense since during the fermentation, the sugar in the 
+grapes becomes alcohol. High quality wines seem to have a sugar content higher 
+than medium and low quality wines.  
+
+Wines with lower sulfates also seem to have lower quality scores than the 
+average. 
+
+However, we can find that the combination of alcohol and acidity seems to hit 
+the spot regarding the palate of our experts. According to Peynaud, a French 
+oenologist, a dry wine can taste sweet if the alcohol level is elevated. 
+This seems to be the make or break regarding our wines, as the high score wine
+show a tendence of having a balance betweeen both acidity and presence. 
+
+In the graph it can be seen as the upper right quadrant gets more importance on 
+visualization; confirming that the combination of high levels of alcohol and 
+acidity result in better wines.
+
+Finally, after creating the linear model we can see disappointing results: the 
+model built can only explain 25% of the score. This might be due not only to the 
+underlying variable connections or the unbalanced dataset where most of the 
+wines where average, but also due to the complexity of the wine rating. With no 
+clear criteria on how to separate great wine from average or bad, it is not 
+possible to create a predictive model. 
+
+------
+
+## Final Plots and Summary
+
+We are now going to summarize the dataset exploration through three graphs and
+draw conclusions from our previous work
+
+### Plot One
+
+```{r echo=FALSE, Plot_One}
+ggplot(aes(x=quality.cat, fill = as.numeric(quality.cat)), data = wwt)+
+  geom_bar()+
+  theme(legend.position="none")+
+  ggtitle("Distribution of wine quality")+
+  xlab("Wine Quality") +
+  ylab("Samples")
+```
+
+### Description One
+Since we aim to analyze the quality of "Vinho Verde" white wine, the first step
+would be to know how the quality is distributed on our dataset. Here we can see
+how the wine scores are distributed using our category 
+
+Of the 4407 observations we have after eliminating the outliers, 3.09% have a 
+score of 3 to 4, 74.11% have a score between 5 and 6 and 22,8% have a 
+score of 7 or more. However, only 3,77% have a score of 8 or more. This makes
+our dataset to be composed mostly by wines of medium quality, which might be
+a difficulty in order to find the characteristics that separates medium quality
+wines from premium wines. 
+
+
+### Plot Two
+```{r echo=FALSE, Plot_Two}
+ggplot(data=whitefinal, aes(x=quality, y=alcohol)) +
+    geom_jitter(alpha=0.15) +
+    geom_boxplot(alpha = .5,color = 'blue') +
+    stat_summary(fun.y = "mean", 
+               geom = "point", 
+               color = "red", 
+               shape = 8, 
+               size = 4) + 
+               xlab("Wine Quality") +
+               ylab("Alcohol %")+
+               ggtitle("Alcohol % per wine quality score")
+  
+```
+
+### Description Two
+In this second plot we can see the interaction between alcohol and wine quality,
+after finding that alcohol was the main driver of wine quality score, with a 
+correlation of 0.44. 
+
+It can be seen how the alcohol content is higher in wines with a higher quality
+score. However, in the case of wines of high quality, we see how the average 
+score is lower than the median, and even falls ouside of the box. This makes us
+think that we need a higher sample of high quality wines in order to find
+a more equal distribution. 
+
+
+### Plot Three
+```{r echo=FALSE, Plot_Three}
+ggplot(data = whitefinal,
+       aes(y = volatile.acidity, x = alcohol,
+           color = quality.cat)) +
+  geom_jitter(alpha=.15, size=3) +
+  geom_smooth(method = "lm", se = FALSE,size=1)+
+  scale_colour_discrete(name="Quality \nCategory")+
+          xlab("Alcohol %") +
+          ylab("acetic acid (g / dm^3)")+
+          ggtitle("Alcohol % and Volatile Acidity per Wine Quality Category")
+```
+
+### Description Three
+Finally, in this graph it can be seen the relationship between alcohol and 
+volatile acidity, other of the variables with higher correlation with wine 
+quality score. What makes this graph stand out is that shows more wines with 
+high scores in the right upper quadrant than the other multivariate analysis,
+signaling a positive relationship between alcohol and acidity in the case of
+great wines. 
+
+
+## Reflection
+
+Regarding this analysis, the main hindrances were the faulty dataset and the
+complexity of how the variables are intertwined. Even analyzing the variables 
+with higher correlation with the score we have been able to develop only a model
+able to explain only a 25% of the score, and it's still not clear to me how
+to separate good wine from bad.
+
+Maybe a larger dataset, with more observations of extreme quality scores and 
+and the mean score and not the median would be more useful for this kind of 
+analysis. In that sense, I find hard to believe that the alcohol is the main 
+driver of wine taste and I wish I knew more about wines to be able to create 
+relationship between similar variables, like acidity, sulphates and such. Maybe
+that way I could do a better job determining what makes a great wine. 
+
+Overall, I enjoyed doing this project but it leaves a sour aftertaste.
