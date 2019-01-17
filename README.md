@@ -9,7 +9,7 @@ This project belongs to Udacity's [Data Analyst Nanodegree](https://eu.udacity.c
 * [Machine learning](https://github.com/AdrianVeraRos/Enron-Fraud-Identification)
 * [Data visualization](https://public.tableau.com/profile/adrian.vera.ros#!/vizhome/Flightdelaycausesfinal/Story1)
 
-This project was developed in 2018 and it is no longer maintained. 
+This project was developed in 2018 and it is no longer maintained. If you have any trouble opening the files please contact me at my [LinkedIn profile](https://www.linkedin.com/in/adrianveraros/) 
 
 
 ## About
