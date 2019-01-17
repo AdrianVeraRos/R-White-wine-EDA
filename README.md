@@ -25,3 +25,4 @@ The repository is structured as follows:
 
 - white_wine_EDA.Rmd — main file containing the R code and the plot descriptions.
 - white_wine_EDA.html — knitted html file from the R code. 
+- white_wine_EDA.pdf — added to solve visitor's visualization issues
