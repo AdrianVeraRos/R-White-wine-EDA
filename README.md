@@ -24,4 +24,5 @@ More information about the nature of the variables can be found here: https://s3
 The repository is structured as follows:
 
 white_wine_EDA.Rmd — main file containing the R code and the plot descriptions.
+
 white_wine_EDA.html — knitted html file from the R code.
